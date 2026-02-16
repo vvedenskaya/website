@@ -1,0 +1,261 @@
+/* Базовые стили, тёмная тема */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0d0d0d;
+  --text: #e8e8e8;
+  --text-muted: #888;
+  --accent: #e6c547;
+  --card-bg: #141414;
+  --border: #2a2a2a;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Fallback solid background when canvas is unavailable (e.g. no JS / old browser) */
+body.bg-fallback {
+  background-color: var(--bg);
+}
+
+/* Full-screen generative background — behind all content */
+.bg-canvas-container {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-canvas-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Grid: sidebar left, content right */
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Левая колонка */
+.sidebar {
+  padding: 2rem 1.5rem;
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.brand .name {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.tagline,
+.keywords {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.keywords {
+  margin-top: 0.25rem;
+}
+
+.nav {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-link.active {
+  color: var(--accent);
+}
+
+/* Правая колонка — проекты */
+.content {
+  padding: 2rem 2rem 4rem;
+  max-width: 900px;
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 1.5rem 1rem 3rem;
+  }
+}
+
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* Один проект: текст слева, окошко (картинка) справа */
+.project {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: start;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.project:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 640px) {
+  .project {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .project-window {
+    order: -1;
+    max-width: 100%;
+  }
+}
+
+.project-text {
+  min-width: 0;
+}
+
+.project-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-year {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.project-desc {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.project-tags {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.project-tags strong {
+  color: var(--text);
+}
+
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn:hover {
+  background: rgba(230, 197, 71, 0.1);
+  border-color: var(--accent);
+}
+
+/* Окошко справа — превью проекта */
+.project-window {
+  flex-shrink: 0;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .project-window {
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+.project-window img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+}
+
+.window-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.project-text code {
+  font-size: 0.85em;
+  background: var(--card-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
