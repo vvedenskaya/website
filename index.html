@@ -2,99 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portfolio</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hydra Playground</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='central' font-size='82'%3E%F0%9F%A6%AB%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body class="bg-fallback">
-    <!-- Full-screen generative art background (canvas injected here) -->
-    <div id="bg-canvas-container" class="bg-canvas-container" aria-hidden="true"></div>
-    <div class="layout">
-      <!-- Left column: name and navigation -->
-      <aside class="sidebar">
-        <header class="brand">
-          <h1 class="name">Yulia Vvedenskaya</h1>
-          <p class="tagline">coder/ experimentator</p>
-          <p class="keywords">tags, keywords</p>
-        </header>
-        <nav class="nav">
-          <a href="#all" class="nav-link active">everything</a>
-          <a href="#featured" class="nav-link">featured</a>
-          <a href="#about" class="nav-link">about</a>
+  <body class="home-page">
+    <main class="fullscreen">
+      <canvas id="hydra-canvas"></canvas>
+      <div class="hud">
+        <p class="editor-hint">Edit the Hydra code below, then press <strong>apply</strong>.</p>
+        <textarea id="hydra-code" spellcheck="false" aria-label="Hydra code editor"></textarea>
+        <div class="editor-actions">
+          <button id="apply-code" type="button">apply</button>
+          <span>Cmd/Ctrl + Enter</span>
+        </div>
+      </div>
+      <section class="nav-hub" aria-label="Site navigation">
+        <nav class="page-links" aria-label="Site sections">
+          <a href="projects.html">projects</a>
+          <a href="about.html">about</a>
         </nav>
-      </aside>
+      </section>
+    </main>
 
-      <!-- Right column: projects (text left, windows right) -->
-      <main class="content">
-        <section class="projects" id="all">
-          <!-- NYC Accessible Places Scraper -->
-          <article class="project">
-            <div class="project-text">
-              <h2 class="project-title">NYC Accessible Places Scraper   </h2>
-              <span class="project-year">2025</span>
-              <p class="project-desc">
-                A web scraper + interactive map that finds wheelchair-accessible locations in New York City.
-
-
-              </p>
-              <p class="project-tags"><strong>Tags:</strong> tag1, tag2, tag3</p>
-              <div class="project-actions">
-                <a href="#" class="btn">→ Code</a>
-                <a href="#" class="btn">→ Access</a>
-              </div>
-            </div>
-            <div class="project-window">
-              <img src="https://placehold.co/320x240/1a1a1a/666" alt="Project preview" />
-              <span class="window-label">preview caption</span>
-            </div>
-          </article>
-
-          <!-- Project 2 -->
-          <article class="project">
-            <div class="project-text">
-              <h2 class="project-title">Second project</h2>
-              <span class="project-year">2024</span>
-              <p class="project-desc">
-                Another project with a description. Same block structure — copy and edit the text and image.
-              </p>
-              <p class="project-tags"><strong>Tags:</strong> web, visualization, data</p>
-              <div class="project-actions">
-                <a href="#" class="btn">→ Access</a>
-              </div>
-            </div>
-            <div class="project-window">
-              <img src="https://placehold.co/320x240/2a2a2a/888" alt="Preview" />
-              <span class="window-label">preview</span>
-            </div>
-          </article>
-
-          <!-- Project 3 — example without Code button -->
-          <article class="project">
-            <div class="project-text">
-              <h2 class="project-title">Third project</h2>
-              <span class="project-year">2024</span>
-              <p class="project-desc">
-                Add as many projects as you like: copy the <code>&lt;article class="project"&gt;</code> block and replace the title, description, tags, links, and image path.
-              </p>
-              <p class="project-tags"><strong>Tags:</strong> installation, media</p>
-              <div class="project-actions">
-                <a href="#" class="btn">→ Access</a>
-              </div>
-            </div>
-            <div class="project-window">
-              <img src="https://placehold.co/320x240/252525/999" alt="Preview" />
-              <span class="window-label">window on the right</span>
-            </div>
-          </article>
-        </section>
-      </main>
-    </div>
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="background.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        window.initGenerativeBackground();
-      });
-    </script>
+    <script src="https://unpkg.com/hydra-synth"></script>
+    <script src="js/hydra-home.js"></script>
   </body>
 </html>

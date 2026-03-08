@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Texture Instancing — Hello World</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0a0a0a; }
+    #canvas { display: block; width: 100vw; height: 100vh; }
+    #info {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      color: #fff; font: 11px/1.4 monospace;
+      background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    Texture Instancing — 1000 planes, atlas UV, simplex noise, wobble pass
+  </div>
+  <div id="canvas"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+  import * as THREE from 'three';
+  import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+  import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+  import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+  // =============================================================================
+  // 1. SIMPLEX NOISE (JS) — simulates TouchDesigner Noise TOP
+  // =============================================================================
+
+  function createSimplex2D() {
+    const F2 = 0.5 * (Math.sqrt(3) - 1);
+    const G2 = (3 - Math.sqrt(3)) / 6;
+    const grad2 = new Float32Array([1,1,-1,1,1,-1,-1,-1, 1,0,-1,0,0,1,0,-1]);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    let n = 256;
+    while (n > 1) {
+      const j = Math.floor(Math.random() * n--);
+      [p[n], p[j]] = [p[j], p[n]];
+    }
+    const perm = new Uint8Array(512);
+    for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+
+    return function(x, y) {
+      const s = (x + y) * F2;
+      const i = Math.floor(x + s), j = Math.floor(y + s);
+      const t = (i + j) * G2;
+      const X0 = i - t, Y0 = j - t;
+      const x0 = x - X0, y0 = y - Y0;
+      const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
+      const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+      const x2 = x0 - 1 + 2*G2, y2 = y0 - 1 + 2*G2;
+      const ii = i & 255, jj = j & 255;
+      const gi0 = (perm[ii + perm[jj]] % 8) * 2;
+
+      const dot2 = (g, x, y) => grad2[g]*x + grad2[g+1]*y;
+      let n0 = 0, n1 = 0, n2 = 0;
+      let t0 = 0.5 - x0*x0 - y0*y0;
+      if (t0 >= 0) { t0 *= t0; n0 = t0*t0*dot2(gi0, x0, y0); }
+      const gi1 = (perm[ii+i1 + perm[jj+j1]] % 8) * 2;
+      let t1 = 0.5 - x1*x1 - y1*y1;
+      if (t1 >= 0) { t1 *= t1; n1 = t1*t1*dot2(gi1, x1, y1); }
+      const gi2 = (perm[ii+1 + perm[jj+1]] % 8) * 2;
+      let t2 = 0.5 - x2*x2 - y2*y2;
+      if (t2 >= 0) { t2 *= t2; n2 = t2*t2*dot2(gi2, x2, y2); }
+      return 70 * (n0 + n1 + n2);
+    };
+  }
+
+  const simplex2D = createSimplex2D();
+
+  function fbm(x, y, octaves = 4) {
+    let v = 0, f = 1, a = 1, sum = 0;
+    for (let i = 0; i < octaves; i++) {
+      v += a * simplex2D(x * f, y * f);
+      sum += a;
+      a *= 0.5;
+      f *= 2;
+    }
+    return v / sum;
+  }
+
+  // =============================================================================
+  // 2. TEXTURE ATLAS (2x2 or 4x4 sprite sheet)
+  // =============================================================================
+
+  function createSpriteSheet(gridSize = 4) {
+    const cell = 128;
+    const total = gridSize * cell;
+    const canvas = document.createElement('canvas');
+    canvas.width = total;
+    canvas.height = total;
+    const ctx = canvas.getContext('2d');
+
+    const colors = ['#ffffff', '#e0e0e0', '#c0c0c0'];
+
+    for (let cy = 0; cy < gridSize; cy++) {
+      for (let cx = 0; cx < gridSize; cx++) {
+        ctx.save();
+        ctx.translate(cx * cell + cell/2, cy * cell + cell/2);
+
+        const n = 3 + Math.floor(Math.random() * 4);
+        for (let s = 0; s < n; s++) {
+          ctx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+          ctx.lineWidth = 2 + Math.random() * 3;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+          ctx.beginPath();
+          let x = (Math.random() - 0.5) * 30, y = (Math.random() - 0.5) * 30;
+          ctx.moveTo(x, y);
+          for (let i = 0; i < 6; i++) {
+            x += (Math.random() - 0.5) * 20;
+            y += (Math.random() - 0.5) * 20;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    return { texture: tex, gridSize };
+  }
+
+  // =============================================================================
+  // 3. INSTANCED MESH — one PlaneGeometry, 1000 instances
+  // =============================================================================
+
+  const INSTANCE_COUNT = 1000;
+  const GRID = 4;
+
+  const container = document.getElementById('canvas');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0a);
+
+  const aspect = window.innerWidth / window.innerHeight;
+  const camSize = 1.2;
+  const camera = new THREE.OrthographicCamera(
+    -camSize * aspect, camSize * aspect,
+    camSize, -camSize,
+    0.1, 100
+  );
+  camera.position.z = 5;
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  const { texture, gridSize } = createSpriteSheet(GRID);
+
+  const geometry = new THREE.PlaneGeometry(0.1, 0.1, 1, 1);
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    opacity: 0.9,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uGridSize = { value: gridSize };
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <uv_pars_vertex>',
+      'uniform float uGridSize; attribute float aCell; varying vec2 vMapUv;'
+    );
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <uv_vertex>',
+      `
+      float c = aCell;
+      float col = mod(c, uGridSize);
+      float row = floor(c / uGridSize);
+      vMapUv = (uv + vec2(col, uGridSize - 1.0 - row)) / uGridSize;
+      `
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <uv_pars_fragment>',
+      'varying vec2 vMapUv;'
+    );
+    shader.fragmentShader = shader.fragmentShader.replace('#include <uv_fragment>', '');
+  };
+
+  const mesh = new THREE.InstancedMesh(geometry, material, INSTANCE_COUNT);
+  mesh.count = INSTANCE_COUNT;
+  scene.add(mesh);
+
+  const dummy = new THREE.Object3D();
+  const cells = new Float32Array(INSTANCE_COUNT);
+  const phases = new Float32Array(INSTANCE_COUNT);
+
+  const cols = Math.ceil(Math.sqrt(INSTANCE_COUNT));
+  const spacing = (camSize * 2) / cols;
+
+  for (let i = 0; i < INSTANCE_COUNT; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const baseX = (col / cols - 0.5) * camSize * 2 * aspect;
+    const baseY = (row / cols - 0.5) * camSize * 2;
+
+    const nx = col * 0.2 + 5;
+    const ny = row * 0.2 + 5;
+
+    const jitterX = (fbm(nx, ny, 3) - 0.5) * spacing * 0.6;
+    const jitterY = (fbm(nx + 50, ny + 50, 3) - 0.5) * spacing * 0.6;
+    const rot = (fbm(nx * 2, ny * 2, 2) - 0.5) * Math.PI * 2;
+    const scale = 0.7 + (fbm(nx * 1.5, ny * 1.5, 2) - 0.5) * 0.6;
+
+    dummy.position.set(baseX + jitterX, baseY + jitterY, 0);
+    dummy.rotation.z = rot;
+    dummy.scale.setScalar(scale);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+
+    cells[i] = Math.floor((fbm(nx * 3, ny * 3, 2) + 1) * 0.5 * gridSize * gridSize) % (gridSize * gridSize);
+    phases[i] = (fbm(nx, ny, 2) + 1) * Math.PI;
+  }
+
+  geometry.setAttribute('aCell', new THREE.InstancedBufferAttribute(cells, 1));
+  mesh.instanceMatrix.needsUpdate = true;
+
+  // =============================================================================
+  // 4. POST-PROCESSING — wobble (Displace TOP equivalent)
+  // =============================================================================
+
+  const WobblePass = new ShaderPass(new THREE.ShaderMaterial({
+    uniforms: {
+      tDiffuse: { value: null },
+      uTime: { value: 0 },
+      uAmount: { value: 0.003 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float uTime;
+      uniform float uAmount;
+      varying vec2 vUv;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(
+          mix(hash(i), hash(i+vec2(1,0)), f.x),
+          mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0, a = 0.5;
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p *= 2.0; a *= 0.5;
+        }
+        return v;
+      }
+      void main() {
+        vec2 off = vec2(
+          (fbm(vUv * 5.0 + uTime * 0.8) - 0.5) * uAmount,
+          (fbm(vUv * 5.0 + 100.0 + uTime * 0.6) - 0.5) * uAmount
+        );
+        gl_FragColor = texture2D(tDiffuse, vUv + off);
+      }
+    `,
+  }));
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(WobblePass);
+
+  // =============================================================================
+  // 5. ANIMATION LOOP — noise-driven movement (boiling / alive)
+  // =============================================================================
+
+  let time = 0;
+  const cellAttr = geometry.getAttribute('aCell');
+
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.02;
+
+    for (let i = 0; i < INSTANCE_COUNT; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const baseX = (col / cols - 0.5) * camSize * 2 * aspect;
+      const baseY = (row / cols - 0.5) * camSize * 2;
+
+      const nx = col * 0.2 + 5 + time * 0.4;
+      const ny = row * 0.2 + 5 + time * 0.35;
+
+      const jitterX = (fbm(nx, ny, 3) - 0.5) * spacing * 0.6;
+      const jitterY = (fbm(nx + 50, ny + 50, 3) - 0.5) * spacing * 0.6;
+      const rot = (fbm(nx * 2, ny * 2, 2) - 0.5) * Math.PI * 2;
+      const scale = 0.7 + (fbm(nx * 1.5, ny * 1.5, 2) - 0.5) * 0.6;
+      const wobble = Math.sin(time * 3 + phases[i]) * 0.025;
+      const drift = Math.sin(time * 0.8 + phases[i] * 0.5) * 0.02;
+
+      dummy.position.set(
+        baseX + jitterX + wobble + drift,
+        baseY + jitterY + wobble * 0.7 + drift * 0.5,
+        0
+      );
+      dummy.rotation.z = rot + wobble * 3;
+      dummy.scale.setScalar(scale * (1 + Math.sin(time * 2 + phases[i]) * 0.15));
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+
+      const cellNoise = (fbm(nx * 4 + time * 0.5, ny * 4, 2) + 1) * 0.5;
+      cellAttr.array[i] = Math.floor(cellNoise * gridSize * gridSize) % (gridSize * gridSize);
+    }
+    cellAttr.needsUpdate = true;
+    mesh.instanceMatrix.needsUpdate = true;
+
+    WobblePass.uniforms.uTime.value = time;
+    WobblePass.uniforms.uAmount.value = 0.003 + Math.sin(time * 0.5) * 0.001;
+    composer.render();
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth, h = window.innerHeight;
+    const a = w / h;
+    camera.left = -camSize * a;
+    camera.right = camSize * a;
+    camera.top = camSize;
+    camera.bottom = -camSize;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    composer.setSize(w, h);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generative Art Tutorial — Three.js</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #canvas { display: block; width: 100vw; height: 100vh; }
+    #info {
+      position: fixed; top: 12px; left: 12px; z-index: 10;
+      color: #fff; font: 12px/1.5 monospace; max-width: 420px;
+      background: rgba(0,0,0,0.7); padding: 12px; border-radius: 8px;
+    }
+    #info h3 { margin: 0 0 8px; font-size: 14px; }
+    #info code { color: #8cf; }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h3>Generative Art — живая генерация</h3>
+    <p>Узлы дрейфуют по шуму, линии следуют, цвета пульсируют.</p>
+    <p>Всё управляется noise(time) — каждый кадр новая картина.</p>
+  </div>
+  <div id="canvas"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+  import * as THREE from 'three';
+
+  // =============================================================================
+  // ЧАСТЬ 1: ШУМ (NOISE) — основа генеративности
+  // =============================================================================
+  // Шум даёт «органичную» случайность: не чисто random, а плавные паттерны.
+  // Perlin/Simplex noise: соседние точки похожи, далёкие — разные.
+  // Используем простой 2D шум для позиций и цветов.
+
+  function noise2D(x, y) {
+    // Упрощённый псевдо-шум (для обучения). В проде лучше использовать
+    // библиотеку simplex-noise или полноценный GLSL-шейдер.
+    const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
+  function smoothNoise(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const a = noise2D(ix, iy);
+    const b = noise2D(ix + 1, iy);
+    const c = noise2D(ix, iy + 1);
+    const d = noise2D(ix + 1, iy + 1);
+    const ux = fx * fx * (3 - 2 * fx); // smoothstep
+    const uy = fy * fy * (3 - 2 * fy);
+    return a * (1 - ux) * (1 - uy) + b * ux * (1 - uy) + c * (1 - ux) * uy + d * ux * uy;
+  }
+
+  // Фрактальный шум (несколько октав) — более «природный» вид
+  function fbm(x, y, octaves) {
+    let v = 0, f = 1, a = 1, sum = 0;
+    for (let i = 0; i < octaves; i++) {
+      v += a * smoothNoise(x * f, y * f);
+      sum += a;
+      a *= 0.5;
+      f *= 2;
+    }
+    return v / sum;
+  }
+
+  // =============================================================================
+  // ЧАСТЬ 2: УЗЛЫ (NODES) — круги и квадраты
+  // =============================================================================
+  // Узел = позиция + размер + цвет. Генерируем их с помощью шума,
+  // чтобы плотность и размеры варьировались органично.
+
+  const PALETTE = [
+    0xff4444, 0xff8844, 0xffcc44, 0x44ff44, 0x44ffff, 0x4488ff,
+    0x8844ff, 0xff44ff, 0xffffff, 0xffaaaa, 0xaaffaa, 0xaaaaff
+  ];
+
+  function createNodes(count, bounds) {
+    const nodes = [];
+    const seed = 42;
+
+    for (let i = 0; i < count; i++) {
+      const nx = (i * 0.1 + seed) * 0.5;
+      const ny = (i * 0.07 + seed * 1.3) * 0.5;
+      const density = fbm(nx, ny, 3);
+      if (density < 0.25) continue;
+
+      const baseX = (noise2D(nx * 2, ny) - 0.5) * 2 * bounds;
+      const baseY = (noise2D(nx, ny * 2) - 0.5) * 2 * bounds;
+
+      const sizeNoise = fbm(nx * 3, ny * 3, 2);
+      const radius = 0.02 + sizeNoise * 0.08;
+
+      const colorIndex = Math.floor(noise2D(nx * 5, ny * 5) * PALETTE.length) % PALETTE.length;
+      const isCircle = noise2D(nx * 7, ny * 7) > 0.3;
+
+      nodes.push({
+        baseX, baseY, radius,
+        color: PALETTE[colorIndex],
+        colorIndex, nx, ny,
+        isCircle,
+        phase: noise2D(nx * 11, ny * 13) * Math.PI * 2
+      });
+    }
+
+    return nodes;
+  }
+
+  // Текущая позиция узла с учётом времени (дрейф по шуму)
+  function getNodePosition(n, t) {
+    const drift = 0.12;
+    const dx = (noise2D(n.nx + t * 0.15, n.ny) - 0.5) * drift;
+    const dy = (noise2D(n.nx, n.ny + t * 0.12) - 0.5) * drift;
+    return { x: n.baseX + dx, y: n.baseY + dy };
+  }
+
+  // =============================================================================
+  // ЧАСТЬ 3: СВЯЗИ (CONNECTIONS) — линии между узлами
+  // =============================================================================
+  // Соединяем близкие узлы. Линии только горизонтальные/вертикальные (как на референсе).
+
+  function createConnections(nodes, maxDist) {
+    const lines = [];
+    const used = new Set();
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = Math.abs(a.baseX - b.baseX), dy = Math.abs(a.baseY - b.baseY);
+        const dist = Math.max(dx, dy);
+
+        if (dist > maxDist || dist < 0.05) continue;
+        const key = `${i}-${j}`;
+        if (used.has(key)) continue;
+        used.add(key);
+
+        const colorIndex = Math.floor(noise2D(i * 0.1, j * 0.1) * PALETTE.length) % PALETTE.length;
+        lines.push({
+          i, j,
+          color: PALETTE[colorIndex],
+          thickness: 0.003 + noise2D(i, j) * 0.004
+        });
+      }
+    }
+
+    return lines;
+  }
+
+  // =============================================================================
+  // ЧАСТЬ 4: ГЕОМЕТРИЯ И МАТЕРИАЛЫ
+  // =============================================================================
+  // Three.js рисует 3D, но мы смотрим «сверху» (ортокамера) — получается 2D.
+
+  function createCircleGeometry(radius, segments) {
+    return new THREE.CircleGeometry(radius, segments);
+  }
+
+  function createSquareGeometry(size) {
+    return new THREE.PlaneGeometry(size, size);
+  }
+
+  function createLineGeometry(x1, y1, x2, y2, thickness) {
+    const hw = thickness / 2;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const nx = -dy / len, ny = dx / len;
+
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(18);
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    updateLineGeometry(geo, x1, y1, x2, y2, thickness);
+    return geo;
+  }
+
+  function updateLineGeometry(geo, x1, y1, x2, y2, thickness) {
+    const hw = thickness / 2;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const nx = -dy / len, ny = dx / len;
+    const pos = geo.getAttribute('position').array;
+    pos[0] = x1 + nx * hw; pos[1] = y1 + ny * hw; pos[2] = 0;
+    pos[3] = x1 - nx * hw; pos[4] = y1 - ny * hw; pos[5] = 0;
+    pos[6] = x2 - nx * hw; pos[7] = y2 - ny * hw; pos[8] = 0;
+    pos[9] = x1 + nx * hw; pos[10] = y1 + ny * hw; pos[11] = 0;
+    pos[12] = x2 - nx * hw; pos[13] = y2 - ny * hw; pos[14] = 0;
+    pos[15] = x2 + nx * hw; pos[16] = y2 + ny * hw; pos[17] = 0;
+    geo.getAttribute('position').needsUpdate = true;
+  }
+
+  // =============================================================================
+  // ЧАСТЬ 5: СЦЕНА, КАМЕРА, РЕНДЕРЕР
+  // =============================================================================
+
+  const container = document.getElementById('canvas');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+
+  const aspect = window.innerWidth / window.innerHeight;
+  const camSize = 1.2;
+  const camera = new THREE.OrthographicCamera(
+    -camSize * aspect, camSize * aspect,
+    camSize, -camSize,
+    0.1, 100
+  );
+  camera.position.z = 5;
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  // =============================================================================
+  // СБОРКА: создаём меши из узлов и линий
+  // =============================================================================
+
+  const bounds = 3;
+  const nodes = createNodes(400, bounds);
+  const connections = createConnections(nodes, 0.35);
+
+  const nodeMeshes = [];
+  const lineMeshes = [];
+
+  nodes.forEach(n => {
+    const geo = n.isCircle
+      ? createCircleGeometry(n.radius, 32)
+      : createSquareGeometry(n.radius * 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color: n.color,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(n.baseX, n.baseY, 0);
+    scene.add(mesh);
+    nodeMeshes.push(mesh);
+  });
+
+  connections.forEach(c => {
+    const p1 = getNodePosition(nodes[c.i], 0);
+    const p2 = getNodePosition(nodes[c.j], 0);
+    const geo = createLineGeometry(p1.x, p1.y, p2.x, p2.y, c.thickness);
+    const mat = new THREE.MeshBasicMaterial({
+      color: c.color,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.z = -0.001;
+    scene.add(mesh);
+    lineMeshes.push({ mesh, geo, conn: c });
+  });
+
+  // =============================================================================
+  // ЧАСТЬ 6: АНИМАЦИЯ — генерация в реальном времени
+  // =============================================================================
+  // Каждый кадр: позиции узлов из шума(time), линии обновляются, цвета пульсируют
+
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.01;
+
+    // 1. Узлы дрейфуют по шуму
+    nodes.forEach((n, i) => {
+      const pos = getNodePosition(n, time);
+      nodeMeshes[i].position.set(pos.x, pos.y, 0);
+      const s = 1 + Math.sin(time + n.phase) * 0.08;
+      nodeMeshes[i].scale.setScalar(s);
+      // 2. Цвета медленно смещаются
+      const idx = (n.colorIndex + Math.floor(time * 0.5)) % PALETTE.length;
+      nodeMeshes[i].material.color.setHex(PALETTE[idx]);
+    });
+
+    // 3. Линии следуют за узлами
+    lineMeshes.forEach(({ geo, conn }) => {
+      const p1 = getNodePosition(nodes[conn.i], time);
+      const p2 = getNodePosition(nodes[conn.j], time);
+      updateLineGeometry(geo, p1.x, p1.y, p2.x, p2.y, conn.thickness);
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.left = -camSize * (w / h);
+    camera.right = camSize * (w / h);
+    camera.top = camSize;
+    camera.bottom = -camSize;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+  </script>
+</body>
+</html>
