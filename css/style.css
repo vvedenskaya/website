@@ -196,29 +196,55 @@ body {
   right: 0.8rem;
   top: 0.8rem;
   left: auto;
-  width: 96px;
+  width: 84px;
   z-index: 4;
 }
 
-.home-nyc-widget a {
+.home-nyc-widget a,
+.home-project-icon {
   position: relative;
   display: block;
+  aspect-ratio: 1 / 1;
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 20px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.44);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  background: rgba(7, 9, 13, 0.4);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.home-nyc-widget a::before,
+.home-project-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.04) 45%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.home-nyc-widget a::after,
+.home-project-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28) inset;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .home-nyc-widget video {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   display: block;
   object-fit: cover;
 }
 
-.home-nyc-widget span {
+.home-nyc-widget span,
+.home-project-icon span {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -240,11 +266,17 @@ body {
   pointer-events: none;
 }
 
-.home-nyc-widget:hover a {
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34), 0 0 20px rgba(236, 255, 84, 0.45);
+.home-nyc-widget:hover a,
+.home-project-icon:hover,
+.home-project-icon:focus-visible {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.4), 0 0 18px rgba(236, 255, 84, 0.35), 0 1px 0 rgba(255, 255, 255, 0.14) inset;
+  filter: brightness(1.04);
 }
 
 .home-nyc-widget:hover span,
+.home-project-icon:hover span,
+.home-project-icon:focus-visible span,
 .home-nyc-widget a:focus-visible span {
   opacity: 1;
 }
@@ -263,6 +295,7 @@ body {
     text-align: center;
     width: 100%;
   }
+
 }
 
 .placeholder-page {
@@ -424,6 +457,22 @@ body {
 
 .visual-5 {
   background: linear-gradient(145deg, #9df778, #23b545);
+}
+
+.visual-6 {
+  background: linear-gradient(145deg, #ffb9c8, #e95b86);
+}
+
+.visual-7 {
+  background: linear-gradient(145deg, #c7bbff, #5a4ad8);
+}
+
+.visual-8 {
+  background: linear-gradient(145deg, #9cf3ff, #178cb2);
+}
+
+.visual-9 {
+  background: linear-gradient(145deg, #ffe08a, #d18c0d);
 }
 
 .project-title-hover {

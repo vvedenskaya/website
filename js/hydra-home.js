@@ -2,22 +2,63 @@
 (function () {
   'use strict';
 
-  var defaultCode =
-    'voronoi(8,1)\n' +
-    '.mult(osc(10,0.1,()=>Math.sin(time)*3).saturate(3).kaleid(200))\n' +
-    '.modulate(o0,0.5)\n' +
-    '.add(o0,0.8)\n' +
-    '.scrollY(-0.01)\n' +
-    '.scale(0.99)\n' +
-    '.modulate(voronoi(8,1),0.008)\n' +
-    '.luma(0.3)\n' +
-    '.out()\n\n' +
-    'speed = 0.1';
+  window.mX = 0.5;
+  window.mY = 0.5;
+  var targetMX = 0.5;
+  var targetMY = 0.5;
+
+  var codeTemplates = [
+    'voronoi(()=>8 + mX * 2,()=>1 + mY * 0.25)\n' +
+      '.mult(osc(()=>10 + mX * 3,0.1,()=>Math.sin(time)*3).saturate(()=>2.4 + mY*0.9).kaleid(()=>80 + mX*35))\n' +
+      '.modulate(o0,()=>0.35 + mY*0.25)\n' +
+      '.add(o0,()=>0.18 + mX*0.2)\n' +
+      '.scrollY(()=>-0.01 + mY * 0.016)\n' +
+      '.scale(()=>0.95 + mX * 0.07)\n' +
+      '.modulate(voronoi(8,1),0.008)\n' +
+      '.luma(()=>0.25 + mY*0.12)\n' +
+      '.out()\n\n' +
+      'speed = 0.1',
+    'osc(()=>5 + mX*2,.1).modulate(noise(()=>6 + mY*2),()=>.16 + mX*0.14).diff(o0)\n' +
+      '  .modulateScrollY(osc(2).modulate(osc().rotate(()=>mX*0.6),.11))\n' +
+      '  .scale(()=>.64 + mY*0.18).color(()=>0.94 + mX*0.12,()=>1.0 + mY*0.07,1)\n' +
+      '  .out()\n\n' +
+      'speed = 0.12',
+    
+  ];
 
   var codeEditor = document.getElementById('hydra-code');
   var applyButton = document.getElementById('apply-code');
   var hydraCanvas = document.getElementById('hydra-canvas');
   var resizeTimer = null;
+
+  function pickRandomTemplate() {
+    return codeTemplates[Math.floor(Math.random() * codeTemplates.length)];
+  }
+
+  function bindPointerInput() {
+    function tickMouseSmoothing() {
+      window.mX += (targetMX - window.mX) * 0.08;
+      window.mY += (targetMY - window.mY) * 0.08;
+      window.requestAnimationFrame(tickMouseSmoothing);
+    }
+
+    function updateMouse(clientX, clientY) {
+      var w = Math.max(window.innerWidth, 1);
+      var h = Math.max(window.innerHeight, 1);
+      targetMX = Math.min(1, Math.max(0, clientX / w));
+      targetMY = Math.min(1, Math.max(0, clientY / h));
+    }
+
+    window.addEventListener(
+      'pointermove',
+      function (event) {
+        updateMouse(event.clientX, event.clientY);
+      },
+      { passive: true }
+    );
+
+    window.requestAnimationFrame(tickMouseSmoothing);
+  }
 
   function applyCode() {
     if (!codeEditor) return;
@@ -71,7 +112,7 @@
   function initHydra() {
     if (!codeEditor || !applyButton || !hydraCanvas) return;
 
-    codeEditor.value = defaultCode;
+    codeEditor.value = pickRandomTemplate();
 
     if (typeof Hydra === 'undefined') {
       codeEditor.value = 'Hydra library did not load. Check your internet connection.';
@@ -91,6 +132,7 @@
     });
 
     bindEditor();
+    bindPointerInput();
     updateResolution();
     applyCode();
     window.addEventListener('resize', handleResize);
