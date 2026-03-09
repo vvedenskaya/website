@@ -11,12 +11,20 @@
     <main class="fullscreen">
       <canvas id="hydra-canvas"></canvas>
       <div class="hud">
-        <p class="editor-hint">Edit the Hydra code below, then press <strong>apply</strong>.</p>
+        <p class="editor-hint"><span class="editable-badge">editable code</span> Change this code, then press <strong>apply</strong>.</p>
         <textarea id="hydra-code" spellcheck="false" aria-label="Hydra code editor"></textarea>
         <div class="editor-actions">
           <button id="apply-code" type="button">apply</button>
           <span>Cmd/Ctrl + Enter</span>
         </div>
+      </div>
+      <div id="nyc-widget" class="home-nyc-widget">
+        <a href="https://vvedenskaya.github.io/nyc-accessible-places-scraper/" aria-label="Open NYC Accessible Places">
+          <video autoplay muted loop playsinline preload="metadata">
+            <source src="images/projects/nyc-demo.mp4" type="video/mp4" />
+          </video>
+          <span>NYC Accessible Places</span>
+        </a>
       </div>
       <section class="nav-hub" aria-label="Site navigation">
         <nav class="page-links" aria-label="Site sections">
