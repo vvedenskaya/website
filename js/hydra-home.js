@@ -21,13 +21,8 @@
       '.modulate(voronoi(8,1),0.008)\n' +
       '.luma(()=>0.25 + mY*0.12)\n' +
       '.out()\n\n' +
-      'speed = 0.1',
-    'osc(()=>5 + mX*2,.1).modulate(noise(()=>6 + mY*2),()=>.16 + mX*0.14).diff(o0)\n' +
-      '  .modulateScrollY(osc(2).modulate(osc().rotate(()=>mX*0.6),.11))\n' +
-      '  .blend(src(s0).contrast(1.06).saturate(1.02),()=>0.2 + mX*0.2)\n' +
-      '  .scale(()=>.64 + mY*0.18).color(()=>0.94 + mX*0.12,()=>1.0 + mY*0.07,1)\n' +
-      '  .out()\n\n' +
-      'speed = 0.12'
+      'speed = 0.1'
+    
   ];
 
   var codeEditor = document.getElementById('hydra-code');
@@ -84,6 +79,9 @@
     if (!codeEditor) return;
     if (typeof window.hush === 'function') {
       window.hush();
+    }
+    if (typeof window.s0 !== 'undefined' && typeof window.s0.initImage === 'function') {
+      window.s0.initImage(PORTRAIT_PATH);
     }
 
     try {
