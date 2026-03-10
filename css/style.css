@@ -125,71 +125,6 @@ body {
   color: var(--accent);
 }
 
-.nav-hub {
-  position: absolute;
-  left: 50%;
-  top: 52%;
-  transform: translate(-50%, -50%);
-  display: grid;
-  gap: 0;
-  justify-items: center;
-  z-index: 3;
-}
-
-.page-links {
-  display: flex;
-  gap: 0.55rem;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-links a {
-  position: relative;
-  text-decoration: none;
-  color: #020202;
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  border: none;
-  border-radius: 8px;
-  background: #ecff54;
-  padding: 0.62rem 0.95rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
-  animation: floatBox 3.2s ease-in-out infinite;
-  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
-}
-
-.page-links a:nth-child(2) {
-  animation-delay: 0.8s;
-}
-
-.page-links a:hover {
-  transform: translateY(-4px) scale(1.02);
-  filter: brightness(1.08);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), 0 0 16px rgba(236, 255, 84, 0.55);
-}
-
-.page-links a:active {
-  transform: translateY(2px) scale(0.985);
-  filter: brightness(0.96);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.26), 0 0 22px rgba(236, 255, 84, 0.8);
-}
-
-.page-links a:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-}
-
-@keyframes floatBox {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
 
 .home-nyc-widget {
   position: absolute;
@@ -282,20 +217,6 @@ body {
 }
 
 @media (max-width: 720px) {
-  .nav-hub {
-    top: 63%;
-  }
-
-  .page-links {
-    flex-direction: column;
-    width: min(76vw, 320px);
-  }
-
-  .page-links a {
-    text-align: center;
-    width: 100%;
-  }
-
 }
 
 .placeholder-page {
