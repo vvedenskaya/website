@@ -11,13 +11,13 @@
   var PORTRAIT_PATH = 'mars%20ph.jpg';
 
   var codeTemplates = [
-    'voronoi(()=>8 + mX * 2,()=>1 + mY * 0.25)\n' +
+    'voronoi(()=>6 + mX * 2,()=>1 + mY * 0.25)\n' +
       '.mult(osc(()=>10 + mX * 3,0.1,()=>Math.sin(time)*3).saturate(()=>2.4 + mY*0.9).kaleid(()=>80 + mX*35))\n' +
       '.modulate(o0,()=>0.35 + mY*0.25)\n' +
       '.add(o0,()=>0.18 + mX*0.2)\n' +
       '.scrollY(()=>-0.01 + mY * .16)\n' +
       '.scale(()=>0.95 + mX * 0.09)\n' +
-      '.blend(src(s0).contrast(1.08).saturate(1.0).scale(()=>1.02 - mX*0.05),()=>0.24 + mY*0.24)\n' +
+      '.diff(src(s0).contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>0.24 + mY*0.24)\n' +
       '.modulate(voronoi(8,1),0.008)\n' +
       '.luma(()=>0.25 + mY*0.12)\n' +
       '.out()\n\n' +
