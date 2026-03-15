@@ -123,7 +123,7 @@ body {
 .home-pie-menu-wrap {
   position: absolute;
   top: 50%;
-  right: 1.25rem;
+  right: 2.75rem;
   transform: translateY(-50%);
   width: 320px;
   height: 320px;
@@ -450,7 +450,7 @@ body {
   .home-pie-menu-wrap {
     width: 260px;
     height: 260px;
-    right: 0.75rem;
+    right: 1.5rem;
   }
   .home-pie-menu-wrap::before {
     inset: -12px;
