@@ -7,7 +7,6 @@
   window.mY = 0.5;
   var targetMX = 0.5;
   var targetMY = 0.5;
-  var TEMPLATE_INDEX_KEY = 'hydraTemplateIndex';
   var PORTRAIT_PATH = 'mars%20ph.jpg';
   var VIDEO_PATHS = ['images/projects/vid1.mp4', 'images/projects/vid2.mp4', 'images/projects/vid3.mp4'];
   var MEDIA_BLEND_KEY = 'hydraMediaBlend';
@@ -17,44 +16,25 @@
   var activeMediaKey = '';
   var slotVideos = { s0: null, s1: null };
 
-  var codeTemplates = [
-    'voronoi(()=>6 + mX * 2,()=>1 + mY * 0.25)\n' +
-      '.mult(osc(()=>10 + mX * 3,0.1,()=>Math.sin(time)*3).saturate(()=>2.4 + mY*0.9).kaleid(()=>80 + mX*35))\n' +
-      '.modulate(o0,()=>0.35 + mY*0.25)\n' +
-      '.add(o0,()=>0.18 + mX*0.2)\n' +
-      '.scrollY(()=>-0.01 + mY * .16)\n' +
-      '.scale(()=>0.95 + mX * 0.09)\n' +
-      '.diff(src(s0).blend(src(s1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>0.24 + mY*0.24)\n' +
-      '.modulate(voronoi(8,1),0.008)\n' +
-      '.luma(()=>0.25 + mY*0.12)\n' +
-      '.out()\n\n' +
-      'speed = 0.1'
-    
-  ];
+  var HYDRA_SLIDER_IDS = ['hydra-speed', 'hydra-scale', 'hydra-scroll', 'hydra-kaleid', 'hydra-blend', 'hydra-luma', 'hydra-saturate'];
+  var HYDRA_PARAM_KEYS = ['hydraSpeed', 'hydraScale', 'hydraScroll', 'hydraKaleid', 'hydraBlend', 'hydraLuma', 'hydraSaturate'];
+  var HYDRA_DEFAULTS = [0.1, 0.96, 0.06, 45, 0.22, 0.18, 2.2];
 
-  var codeEditor = document.getElementById('hydra-code');
-  var applyButton = document.getElementById('apply-code');
   var hydraCanvas = document.getElementById('hydra-canvas');
   var resizeTimer = null;
 
-  function pickTemplateForLoad() {
-    var total = codeTemplates.length;
-    if (!total) return '';
-
-    var nextIndex = 0;
-    try {
-      var previousIndex = Number(window.localStorage.getItem(TEMPLATE_INDEX_KEY));
-      if (Number.isFinite(previousIndex) && previousIndex >= 0) {
-        nextIndex = (previousIndex + 1) % total;
-      } else {
-        nextIndex = Math.floor(Math.random() * total);
-      }
-      window.localStorage.setItem(TEMPLATE_INDEX_KEY, String(nextIndex));
-    } catch (_e) {
-      nextIndex = Math.floor(Math.random() * total);
-    }
-
-    return codeTemplates[nextIndex];
+  function getTemplateCode() {
+    return 'voronoi(()=>6 + mX * 0.2,()=>1 + mY * 0.05)\n' +
+      '.mult(osc(()=>10 + mX * 3,0.1,()=>Math.sin(time)*1).saturate(()=>window.hydraSaturate).kaleid(()=>window.hydraKaleid))\n' +
+      '.modulate(o0,()=>0.35 + mY*0.25)\n' +
+      '.add(o0,()=>0.18 + mX*0.2)\n' +
+      '.scrollY(()=>window.hydraScroll)\n' +
+      '.scale(()=>window.hydraScale + mX * 0.04)\n' +
+      '.diff(src(s0).blend(src(s1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>window.hydraBlend)\n' +
+      '.modulate(voronoi(8,1),0.008)\n' +
+      '.luma(()=>window.hydraLuma)\n' +
+      '.out()\n\n' +
+      'speed = window.hydraSpeed';
   }
 
   function bindPointerInput() {
@@ -289,32 +269,48 @@
   }
 
   function applyCode() {
-    if (!codeEditor) return;
     if (typeof window.hush === 'function') {
       window.hush();
     }
-    transitionToRandomSource();
-
     try {
-      window.eval(codeEditor.value);
-      codeEditor.title = '';
+      window.eval(getTemplateCode());
     } catch (error) {
-      codeEditor.title = error && error.message ? error.message : 'Hydra code error';
       console.error(error);
     }
   }
 
-  function bindEditor() {
-    if (!codeEditor || !applyButton) return;
+  function bindSliders() {
+    for (var i = 0; i < HYDRA_SLIDER_IDS.length; i += 1) {
+      var el = document.getElementById(HYDRA_SLIDER_IDS[i]);
+      var key = HYDRA_PARAM_KEYS[i];
+      var def = HYDRA_DEFAULTS[i];
+      if (!el) continue;
+      var min = parseFloat(el.min, 10);
+      var max = parseFloat(el.max, 10);
+      var initial = (typeof def === 'number' && def >= min && def <= max) ? def : (min + max) * 0.5;
+      el.value = String(initial);
+      window[key] = initial;
+      (function (input, paramKey) {
+        function update() {
+          var v = parseFloat(input.value, 10);
+          window[paramKey] = v;
+          applyCode();
+        }
+        input.addEventListener('input', update);
+        input.addEventListener('change', update);
+      })(el, key);
+    }
+  }
 
-    applyButton.addEventListener('click', applyCode);
-    codeEditor.addEventListener('keydown', function (event) {
-      var isEnter = event.key === 'Enter';
-      var withModifier = event.metaKey || event.ctrlKey;
-      if (!isEnter || !withModifier) return;
-      event.preventDefault();
-      applyCode();
-    });
+  function preventEnterActivation() {
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter') return;
+      var target = event.target;
+      var tagName = target && target.tagName ? target.tagName.toUpperCase() : '';
+      if (tagName === 'BODY' || tagName === 'MAIN' || (hydraCanvas && target === hydraCanvas)) {
+        event.preventDefault();
+      }
+    }, true);
   }
 
   function updateResolution() {
@@ -338,13 +334,9 @@
   }
 
   function initHydra() {
-    if (!codeEditor || !applyButton || !hydraCanvas) return;
-
-    // Choose template once per page load.
-    codeEditor.value = pickTemplateForLoad();
+    if (!hydraCanvas) return;
 
     if (typeof Hydra === 'undefined') {
-      codeEditor.value = 'Hydra library did not load. Check your internet connection.';
       return;
     }
 
@@ -362,8 +354,9 @@
     setBlendValue(0);
     transitionToRandomSource(true);
 
-    bindEditor();
+    bindSliders();
     bindPointerInput();
+    preventEnterActivation();
     updateResolution();
     applyCode();
     window.addEventListener('resize', handleResize);
