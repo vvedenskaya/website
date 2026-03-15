@@ -9,6 +9,13 @@
   var targetMY = 0.5;
   var TEMPLATE_INDEX_KEY = 'hydraTemplateIndex';
   var PORTRAIT_PATH = 'mars%20ph.jpg';
+  var VIDEO_PATHS = ['images/projects/vid1.mp4', 'images/projects/vid2.mp4', 'images/projects/vid3.mp4'];
+  var MEDIA_BLEND_KEY = 'hydraMediaBlend';
+  var sourceSwitchTimer = null;
+  var sourceFallbackTimer = null;
+  var activeSlotName = 's0';
+  var activeMediaKey = '';
+  var slotVideos = { s0: null, s1: null };
 
   var codeTemplates = [
     'voronoi(()=>6 + mX * 2,()=>1 + mY * 0.25)\n' +
@@ -17,7 +24,7 @@
       '.add(o0,()=>0.18 + mX*0.2)\n' +
       '.scrollY(()=>-0.01 + mY * .16)\n' +
       '.scale(()=>0.95 + mX * 0.09)\n' +
-      '.diff(src(s0).contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>0.24 + mY*0.24)\n' +
+      '.diff(src(s0).blend(src(s1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>0.24 + mY*0.24)\n' +
       '.modulate(voronoi(8,1),0.008)\n' +
       '.luma(()=>0.25 + mY*0.12)\n' +
       '.out()\n\n' +
@@ -75,14 +82,218 @@
     window.requestAnimationFrame(tickMouseSmoothing);
   }
 
+  function randomBetween(minMs, maxMs) {
+    return Math.floor(minMs + Math.random() * (maxMs - minMs));
+  }
+
+  function clearVideoSlot(slotName) {
+    var video = slotVideos[slotName];
+    if (!video) return;
+    video.onended = null;
+    video.onerror = null;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    slotVideos[slotName] = null;
+  }
+
+  function clearSourceCycle() {
+    if (sourceSwitchTimer) {
+      clearTimeout(sourceSwitchTimer);
+      sourceSwitchTimer = null;
+    }
+    if (sourceFallbackTimer) {
+      clearTimeout(sourceFallbackTimer);
+      sourceFallbackTimer = null;
+    }
+    clearVideoSlot('s0');
+    clearVideoSlot('s1');
+  }
+
+  function scheduleNextSourceSwitch(minMs, maxMs) {
+    sourceSwitchTimer = setTimeout(function () {
+      transitionToRandomSource();
+    }, randomBetween(minMs, maxMs));
+  }
+
+  function chooseRandomMedia(prevKey) {
+    // Keep portrait visible most of the time.
+    var weightedPool = [
+      { key: 'portrait', type: 'image', path: PORTRAIT_PATH, weight: 0.64 },
+      { key: 'vid1', type: 'video', path: VIDEO_PATHS[0], weight: 0.12 },
+      { key: 'vid2', type: 'video', path: VIDEO_PATHS[1], weight: 0.12 },
+      { key: 'vid3', type: 'video', path: VIDEO_PATHS[2], weight: 0.12 },
+    ];
+    var pick = null;
+    var totalWeight = 0;
+    var i;
+
+    for (i = 0; i < weightedPool.length; i += 1) {
+      totalWeight += weightedPool[i].weight;
+    }
+    var threshold = Math.random() * totalWeight;
+    for (i = 0; i < weightedPool.length; i += 1) {
+      threshold -= weightedPool[i].weight;
+      if (threshold <= 0) {
+        pick = weightedPool[i];
+        break;
+      }
+    }
+    if (!pick) pick = weightedPool[0];
+
+    // Avoid showing exactly the same source twice in a row.
+    if (pick.key === prevKey) {
+      for (i = 0; i < weightedPool.length; i += 1) {
+        if (weightedPool[i].key !== prevKey) return weightedPool[i];
+      }
+    }
+    return pick;
+  }
+
+  function setBlendValue(value) {
+    window[MEDIA_BLEND_KEY] = value;
+  }
+
+  function animateBlend(toValue, durationMs, onDone) {
+    var fromValue = Number(window[MEDIA_BLEND_KEY] || 0);
+    var start = performance.now();
+
+    function step(now) {
+      var t = Math.min(1, (now - start) / durationMs);
+      // Smoothstep easing.
+      var eased = t * t * (3 - 2 * t);
+      setBlendValue(fromValue + (toValue - fromValue) * eased);
+      if (t < 1) {
+        window.requestAnimationFrame(step);
+      } else if (typeof onDone === 'function') {
+        onDone();
+      }
+    }
+
+    window.requestAnimationFrame(step);
+  }
+
+  function bindActiveVideoHandlers(slotName) {
+    var video = slotVideos[slotName];
+    if (!video) return;
+    video.onended = function () {
+      transitionToRandomSource();
+    };
+    video.onerror = function () {
+      transitionToRandomSource();
+    };
+  }
+
+  function initMediaInSlot(slotName, media, onReady) {
+    var source = window[slotName];
+    if (!source) return;
+    clearVideoSlot(slotName);
+
+    if (media.type === 'video' && typeof source.init === 'function') {
+      var video = document.createElement('video');
+      var readyCalled = false;
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+      video.autoplay = true;
+      video.loop = false;
+      video.playsInline = true;
+      video.preload = 'auto';
+      function done() {
+        if (readyCalled) return;
+        readyCalled = true;
+        if (typeof onReady === 'function') onReady();
+      }
+
+      video.addEventListener(
+        'loadeddata',
+        function () {
+          var playPromise = video.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(function () {
+              done();
+            });
+          }
+          done();
+        },
+        { once: true }
+      );
+      video.addEventListener(
+        'error',
+        function () {
+          done();
+        },
+        { once: true }
+      );
+      video.src = media.path;
+      source.init({ src: video, dynamic: true });
+      slotVideos[slotName] = video;
+      return;
+    }
+
+    if (typeof source.initImage === 'function') {
+      source.initImage(media.path);
+      // Let Hydra refresh source texture before blending.
+      setTimeout(function () {
+        if (typeof onReady === 'function') onReady();
+      }, 90);
+    }
+  }
+
+  function scheduleAfterActivation(mediaType) {
+    if (sourceFallbackTimer) {
+      clearTimeout(sourceFallbackTimer);
+      sourceFallbackTimer = null;
+    }
+    if (mediaType === 'image') {
+      scheduleNextSourceSwitch(9000, 17000);
+      return;
+    }
+    // If video end event is missed, fallback still advances.
+    sourceFallbackTimer = setTimeout(function () {
+      transitionToRandomSource();
+    }, 16000);
+  }
+
+  function transitionToRandomSource(isInitial) {
+    if (typeof window.s0 === 'undefined' || typeof window.s1 === 'undefined') return;
+
+    if (sourceSwitchTimer) {
+      clearTimeout(sourceSwitchTimer);
+      sourceSwitchTimer = null;
+    }
+    if (sourceFallbackTimer) {
+      clearTimeout(sourceFallbackTimer);
+      sourceFallbackTimer = null;
+    }
+
+    var nextMedia = chooseRandomMedia(activeMediaKey);
+    var targetSlotName;
+    var targetBlend;
+
+    if (isInitial) {
+      targetSlotName = 's0';
+      targetBlend = 0;
+    } else {
+      targetSlotName = activeSlotName === 's0' ? 's1' : 's0';
+      targetBlend = targetSlotName === 's1' ? 1 : 0;
+    }
+
+    initMediaInSlot(targetSlotName, nextMedia, function () {
+      animateBlend(targetBlend, isInitial ? 1 : 1100, function () {
+        activeSlotName = targetSlotName;
+        activeMediaKey = nextMedia.key;
+        bindActiveVideoHandlers(activeSlotName);
+        scheduleAfterActivation(nextMedia.type);
+      });
+    });
+  }
+
   function applyCode() {
     if (!codeEditor) return;
     if (typeof window.hush === 'function') {
       window.hush();
     }
-    if (typeof window.s0 !== 'undefined' && typeof window.s0.initImage === 'function') {
-      window.s0.initImage(PORTRAIT_PATH);
-    }
+    transitionToRandomSource();
 
     try {
       window.eval(codeEditor.value);
@@ -148,9 +359,8 @@
       detectAudio: false,
       makeGlobal: true,
     });
-    if (typeof window.s0 !== 'undefined' && typeof window.s0.initImage === 'function') {
-      window.s0.initImage(PORTRAIT_PATH);
-    }
+    setBlendValue(0);
+    transitionToRandomSource(true);
 
     bindEditor();
     bindPointerInput();
