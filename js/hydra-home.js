@@ -333,6 +333,52 @@
     }, 100);
   }
 
+  function bindProjectPopup() {
+    var popup = document.getElementById('project-popup');
+    var iframe = document.getElementById('project-popup-iframe');
+    var titleEl = document.getElementById('project-popup-title');
+    var externalLink = document.getElementById('project-popup-external');
+    var closeBtn = popup && popup.querySelector('.project-popup-close');
+    var backdrop = popup && popup.querySelector('.project-popup-backdrop');
+    var projectLinks = document.querySelectorAll('.coverflow-track .home-pie-item a');
+
+    if (!popup || !iframe) return;
+
+    function openPopup(url, label) {
+      iframe.src = url;
+      titleEl.textContent = label || 'Project';
+      if (externalLink) {
+        externalLink.href = url;
+      }
+      popup.setAttribute('aria-hidden', 'false');
+      popup.classList.add('project-popup-open');
+      document.body.classList.add('project-popup-active');
+    }
+
+    function closePopup() {
+      popup.setAttribute('aria-hidden', 'true');
+      popup.classList.remove('project-popup-open');
+      document.body.classList.remove('project-popup-active');
+      iframe.src = '';
+    }
+
+    projectLinks.forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var url = link.getAttribute('href');
+        var label = link.getAttribute('aria-label') || link.textContent.trim() || 'Project';
+        if (url) openPopup(url, label);
+      });
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closePopup);
+    if (backdrop) backdrop.addEventListener('click', closePopup);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && popup.classList.contains('project-popup-open')) closePopup();
+    });
+  }
+
   function initHydra() {
     if (!hydraCanvas) return;
 
@@ -362,5 +408,8 @@
     window.addEventListener('resize', handleResize);
   }
 
-  document.addEventListener('DOMContentLoaded', initHydra);
+  document.addEventListener('DOMContentLoaded', function () {
+    bindProjectPopup();
+    initHydra();
+  });
 })();

@@ -87,6 +87,18 @@
           </div>
         </nav>
       </div>
+
+      <div id="project-popup" class="project-popup" role="dialog" aria-modal="true" aria-labelledby="project-popup-title" aria-hidden="true">
+        <div class="project-popup-backdrop"></div>
+        <div class="project-popup-box">
+          <div class="project-popup-header">
+            <h2 id="project-popup-title" class="project-popup-title"></h2>
+            <a id="project-popup-external" class="project-popup-external" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open in new tab">Open in new tab</a>
+            <button type="button" class="project-popup-close" aria-label="Close">×</button>
+          </div>
+          <iframe id="project-popup-iframe" class="project-popup-iframe" title="Project"></iframe>
+        </div>
+      </div>
     </main>
 
     <script src="https://unpkg.com/hydra-synth@1.3.29/dist/hydra-synth.js" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/hydra-synth@1.3.29/dist/hydra-synth.js';document.head.appendChild(s);}())"></script>
