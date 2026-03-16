@@ -11,6 +11,14 @@
     <main class="fullscreen">
       <canvas id="hydra-canvas"></canvas>
       <div class="hud hud-sliders" role="application" aria-label="Hydra parameters">
+        <div class="hydra-code-section">
+          <p class="hydra-code-heading">editable code</p>
+          <textarea id="hydra-code" class="hydra-code-editor" spellcheck="false" aria-label="Hydra code"></textarea>
+          <div class="hydra-code-actions">
+            <button type="button" id="hydra-apply-code" class="hydra-apply-btn" aria-label="Apply code">apply</button>
+            <span class="hydra-code-hint">Cmd/Ctrl + Enter</span>
+          </div>
+        </div>
         <div class="hud-slider">
           <label for="hydra-speed">speed</label>
           <input type="range" id="hydra-speed" min="0.02" max="0.5" step="0.01" value="0.1" aria-label="Speed" />

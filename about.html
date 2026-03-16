@@ -7,11 +7,63 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='central' font-size='82'%3E%F0%9F%A6%AB%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body class="placeholder-page">
-    <section class="placeholder-card about-page-card">
-      <h1>About</h1>
-      <p>This is a personal portfolio and creative playground. Projects include interactive maps, audio experiments, and visual work—explore the links on the home page.</p>
+  <body class="about-page">
+    <div id="about-bg-sketch" class="about-bg-sketch" aria-hidden="true"></div>
+    <main class="about-content">
+      <p>This is my digital space. Explore it. Explore my projects. Listen to my music. Enjoy how my AI-blended portrait glitches and shimmers. Tweak the sliders or dig into the source code and create your own version of my glitching, blending self. Variables change. The constant stays the same.</p>
       <p><a href="index.html" class="about-back-link">Back to home</a></p>
-    </section>
+    </main>
+    <script src="https://unpkg.com/p5@1.9.0/lib/p5.min.js"></script>
+    <script>
+      (function () {
+        var container = document.getElementById('about-bg-sketch');
+        if (!container) return;
+        function run() {
+          if (typeof p5 === 'undefined') return;
+          new p5(function (p) {
+            var particles = [];
+            var flowScale = 0.003;
+            var timeScale = 0.015;
+            var particleCount = 180;
+            var speed = 1.2;
+            var trailAlpha = 12;
+            p.setup = function () {
+              var c = p.createCanvas(p.windowWidth, p.windowHeight);
+              c.parent(container);
+              p.noiseDetail(4, 0.5);
+              for (var i = 0; i < particleCount; i++) {
+                particles.push({ x: p.random(p.width), y: p.random(p.height), prevX: 0, prevY: 0 });
+              }
+            };
+            p.draw = function () {
+              p.fill(0, trailAlpha);
+              p.noStroke();
+              p.rect(0, 0, p.width, p.height);
+              var t = p.frameCount * timeScale;
+              for (var i = 0; i < particles.length; i++) {
+                var pt = particles[i];
+                pt.prevX = pt.x;
+                pt.prevY = pt.y;
+                var n = p.noise(pt.x * flowScale, pt.y * flowScale, t);
+                var angle = n * p.TWO_PI * 2;
+                pt.x += p.cos(angle) * speed;
+                pt.y += p.sin(angle) * speed;
+                if (pt.x < 0) pt.x += p.width;
+                if (pt.x > p.width) pt.x -= p.width;
+                if (pt.y < 0) pt.y += p.height;
+                if (pt.y > p.height) pt.y -= p.height;
+                p.stroke(245, 245, 250, 45);
+                p.strokeWeight(0.8);
+                p.line(pt.prevX, pt.prevY, pt.x, pt.y);
+                p.noStroke();
+              }
+            };
+            p.windowResized = function () { p.resizeCanvas(p.windowWidth, p.windowHeight); };
+          });
+        }
+        if (document.readyState === 'complete') run();
+        else window.addEventListener('load', run);
+      })();
+    </script>
   </body>
 </html>

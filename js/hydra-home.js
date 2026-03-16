@@ -268,15 +268,42 @@
     });
   }
 
+  var codeEditor = document.getElementById('hydra-code');
+  var applyCodeButton = document.getElementById('hydra-apply-code');
+
   function applyCode() {
     if (typeof window.hush === 'function') {
       window.hush();
     }
+    var source = codeEditor && codeEditor.value ? codeEditor.value : getTemplateCode();
     try {
-      window.eval(getTemplateCode());
+      window.eval(source);
+      if (codeEditor) codeEditor.title = '';
     } catch (error) {
+      if (codeEditor) codeEditor.title = error && error.message ? error.message : 'Error';
       console.error(error);
     }
+  }
+
+  function updateCodeDisplay() {
+    if (codeEditor) codeEditor.value = getTemplateCode();
+  }
+
+  function bindCodeEditor() {
+    if (!codeEditor) return;
+    updateCodeDisplay();
+    if (applyCodeButton) {
+      applyCodeButton.addEventListener('click', function (e) {
+        e.preventDefault();
+        applyCode();
+      });
+    }
+    codeEditor.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        applyCode();
+      }
+    });
   }
 
   function bindSliders() {
@@ -409,6 +436,9 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    codeEditor = document.getElementById('hydra-code');
+    applyCodeButton = document.getElementById('hydra-apply-code');
+    bindCodeEditor();
     bindProjectPopup();
     initHydra();
   });
