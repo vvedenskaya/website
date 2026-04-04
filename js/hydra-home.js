@@ -363,20 +363,38 @@
   function bindProjectPopup() {
     var popup = document.getElementById('project-popup');
     var iframe = document.getElementById('project-popup-iframe');
+    var caseStudy = document.getElementById('project-popup-case-study');
     var titleEl = document.getElementById('project-popup-title');
-    var externalLink = document.getElementById('project-popup-external');
     var closeBtn = popup && popup.querySelector('.project-popup-close');
     var backdrop = popup && popup.querySelector('.project-popup-backdrop');
-    var projectLinks = document.querySelectorAll('.coverflow-track .home-pie-item a');
+    var projectLinks = document.querySelectorAll('.coverflow-track a');
 
     if (!popup || !iframe) return;
 
-    function openPopup(url, label) {
-      iframe.src = url;
-      titleEl.textContent = label || 'Project';
-      if (externalLink) {
-        externalLink.href = url;
+    function showIframeMode() {
+      iframe.hidden = false;
+      if (caseStudy) caseStudy.hidden = true;
+    }
+
+    function showCaseStudyMode() {
+      iframe.hidden = true;
+      if (caseStudy) caseStudy.hidden = false;
+    }
+
+    function openPopup(config) {
+      var popupConfig = config || {};
+      var mode = popupConfig.mode || 'iframe';
+      var url = popupConfig.url || '';
+      var label = popupConfig.label || 'Project';
+
+      if (mode === 'case-study') {
+        showCaseStudyMode();
+        iframe.src = '';
+      } else {
+        showIframeMode();
+        iframe.src = url;
       }
+      titleEl.textContent = label || 'Project';
       popup.setAttribute('aria-hidden', 'false');
       popup.classList.add('project-popup-open');
       document.body.classList.add('project-popup-active');
@@ -393,8 +411,13 @@
       link.addEventListener('click', function (e) {
         e.preventDefault();
         var url = link.getAttribute('href');
+        var mode = link.getAttribute('data-popup-mode');
         var label = link.getAttribute('aria-label') || link.textContent.trim() || 'Project';
-        if (url) openPopup(url, label);
+        if (mode === 'case-study') {
+          openPopup({ mode: 'case-study', label: label });
+          return;
+        }
+        if (url) openPopup({ mode: 'iframe', url: url, label: label });
       });
     });
 
