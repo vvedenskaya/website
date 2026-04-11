@@ -8,7 +8,7 @@
   var targetMX = 0.5;
   var targetMY = 0.5;
   var PORTRAIT_PATH = 'mars%20ph.jpg';
-  var VIDEO_PATHS = ['images/projects/vid1.mp4', 'images/projects/vid2.mp4', 'images/projects/vid3.mp4'];
+  var VIDEO_PATHS = ['images/projects/compressed/vid1.web.mp4', 'images/projects/compressed/vid2.web.mp4', 'images/projects/compressed/vid3.web.mp4'];
   var MEDIA_BLEND_KEY = 'hydraMediaBlend';
   var sourceSwitchTimer = null;
   var sourceFallbackTimer = null;
