@@ -364,6 +364,7 @@
     var popup = document.getElementById('project-popup');
     var iframe = document.getElementById('project-popup-iframe');
     var caseStudy = document.getElementById('project-popup-case-study');
+    var caseStudyVideo = caseStudy && caseStudy.querySelector('video');
     var titleEl = document.getElementById('project-popup-title');
     var closeBtn = popup && popup.querySelector('.project-popup-close');
     var backdrop = popup && popup.querySelector('.project-popup-backdrop');
@@ -379,6 +380,10 @@
     function showCaseStudyMode() {
       iframe.hidden = true;
       if (caseStudy) caseStudy.hidden = false;
+      if (caseStudyVideo) {
+        caseStudyVideo.currentTime = 0;
+        caseStudyVideo.play().catch(function () {});
+      }
     }
 
     function openPopup(config) {
@@ -390,11 +395,12 @@
       if (mode === 'case-study') {
         showCaseStudyMode();
         iframe.src = '';
+        titleEl.textContent = '';
       } else {
         showIframeMode();
         iframe.src = url;
+        titleEl.textContent = label || 'Project';
       }
-      titleEl.textContent = label || 'Project';
       popup.setAttribute('aria-hidden', 'false');
       popup.classList.add('project-popup-open');
       document.body.classList.add('project-popup-active');
@@ -405,6 +411,7 @@
       popup.classList.remove('project-popup-open');
       document.body.classList.remove('project-popup-active');
       iframe.src = '';
+      if (caseStudyVideo) caseStudyVideo.pause();
     }
 
     projectLinks.forEach(function (link) {

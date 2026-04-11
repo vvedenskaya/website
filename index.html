@@ -68,11 +68,11 @@
           </a>
         </div>
         <div id="neocity-widget" class="home-pie-item home-pie-item-3 home-nyc-widget home-neocity-widget">
-          <a href="#" data-popup-mode="case-study" aria-label="Open NEOCITY Network Case Study">
+          <a href="#" data-popup-mode="case-study" aria-label="Bombay - Mars Interactive Map">
             <video autoplay muted loop playsinline preload="metadata">
-              <source src="images/projects/neocity_rec.mp4" type="video/mp4" />
+              <source src="images/projects/network%20map%20video%20.mp4" type="video/mp4" />
             </video>
-            <span>NEOCITY NETWORK</span>
+            <span>Bombay - Mars Interactive Map</span>
           </a>
         </div>
         <div id="album-widget-1" class="home-pie-item home-pie-item-4 home-album-widget home-album-widget-1">
@@ -106,29 +106,23 @@
           <iframe id="project-popup-iframe" class="project-popup-iframe" title="Project"></iframe>
           <div id="project-popup-case-study" class="project-popup-case-study" hidden>
             <div class="project-case-study-content">
+              <video controls autoplay muted loop preload="auto" playsinline>
+                <source src="images/projects/network%20map%20video%20.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+
               <p>
-                NEOCITY Network map runs only in local intranet, so this online version shows a short case study preview.
+                At Mars College I built a live map of Bombay Beach and the college campus - one LAN, one community-run internet. The idea was simple: show how that shared network actually sits on the ground, not only in a dashboard.
               </p>
               <p>
-                Replace this text with your own description: project goals, data layers, stack, and deployment notes.
+                A small pipeline reads UniFi and UISP controllers and places radios, access points, and clients on the map with their real coordinates. You get three basemaps (streets, satellite, and a drone orthophoto), every device and link in view, light animation to suggest traffic moving across links and around APs, and a time bar to scrub sampled snapshots of usage and client connectivity over shorter and longer windows. For the frontend, we used OpenLayers.
               </p>
-
-              <h3>Screenshots</h3>
-              <div class="project-case-study-gallery">
-                <figure>
-                  <div class="project-case-study-media-placeholder">Insert screenshot 1</div>
-                  <figcaption>Map overview</figcaption>
-                </figure>
-                <figure>
-                  <div class="project-case-study-media-placeholder">Insert screenshot 2</div>
-                  <figcaption>Layer detail</figcaption>
-                </figure>
-              </div>
-
-              <h3>Video walkthrough</h3>
-              <div class="project-case-study-media-placeholder project-case-study-video-placeholder">
-                Insert video (replace this block with a &lt;video&gt; tag)
-              </div>
+              <p>
+                Because Google Maps did not show the layout of our off-grid community, we captured DJI drone photos and stitched them into a single orthophoto aligned with Google Maps.
+              </p>
+              <p>
+                For each client the panel shows IP, signal strength, the associated access point, uptime, and traffic. Access point positions were checked on site with GPS.
+              </p>
             </div>
           </div>
         </div>
