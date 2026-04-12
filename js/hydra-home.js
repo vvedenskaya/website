@@ -15,6 +15,7 @@
   var activeSlotName = 's0';
   var activeMediaKey = '';
   var slotVideos = { s0: null, s1: null };
+  var slotMediaAspect = { s0: 1, s1: 1 };
 
   var HYDRA_SLIDER_IDS = ['hydra-speed', 'hydra-scale', 'hydra-scroll', 'hydra-kaleid', 'hydra-blend', 'hydra-luma', 'hydra-saturate'];
   var HYDRA_PARAM_KEYS = ['hydraSpeed', 'hydraScale', 'hydraScroll', 'hydraKaleid', 'hydraBlend', 'hydraLuma', 'hydraSaturate'];
@@ -22,6 +23,37 @@
 
   var hydraCanvas = document.getElementById('hydra-canvas');
   var resizeTimer = null;
+  window.hydraMediaScaleX0 = 1;
+  window.hydraMediaScaleY0 = 1;
+  window.hydraMediaScaleX1 = 1;
+  window.hydraMediaScaleY1 = 1;
+
+  function getViewportAspect() {
+    return Math.max(window.innerWidth, 1) / Math.max(window.innerHeight, 1);
+  }
+
+  function getCoverScale(mediaAspect, viewportAspect) {
+    var safeMediaAspect = Number(mediaAspect);
+    var safeViewportAspect = Number(viewportAspect);
+    if (!isFinite(safeMediaAspect) || safeMediaAspect <= 0) return { x: 1, y: 1 };
+    if (!isFinite(safeViewportAspect) || safeViewportAspect <= 0) return { x: 1, y: 1 };
+    if (safeMediaAspect > safeViewportAspect) {
+      return { x: safeMediaAspect / safeViewportAspect, y: 1 };
+    }
+    return { x: 1, y: safeViewportAspect / safeMediaAspect };
+  }
+
+  function updateSlotCoverScale(slotName) {
+    var slotIndex = slotName === 's0' ? '0' : '1';
+    var coverScale = getCoverScale(slotMediaAspect[slotName], getViewportAspect());
+    window['hydraMediaScaleX' + slotIndex] = coverScale.x;
+    window['hydraMediaScaleY' + slotIndex] = coverScale.y;
+  }
+
+  function updateAllCoverScales() {
+    updateSlotCoverScale('s0');
+    updateSlotCoverScale('s1');
+  }
 
   function getTemplateCode() {
     return 'voronoi(()=>6 + mX * 0.2,()=>1 + mY * 0.05)\n' +
@@ -30,7 +62,7 @@
       '.add(o0,()=>0.18 + mX*0.2)\n' +
       '.scrollY(()=>window.hydraScroll)\n' +
       '.scale(()=>window.hydraScale + mX * 0.04)\n' +
-      '.diff(src(s0).blend(src(s1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>window.hydraBlend)\n' +
+      '.diff(src(s0).scale(1, ()=>window.hydraMediaScaleX0, ()=>window.hydraMediaScaleY0).blend(src(s1).scale(1, ()=>window.hydraMediaScaleX1, ()=>window.hydraMediaScaleY1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>window.hydraBlend)\n' +
       '.modulate(voronoi(8,1),0.008)\n' +
       '.luma(()=>window.hydraLuma)\n' +
       '.out()\n\n' +
@@ -187,6 +219,9 @@
       video.addEventListener(
         'loadeddata',
         function () {
+          var videoAspect = (video.videoWidth > 0 && video.videoHeight > 0) ? (video.videoWidth / video.videoHeight) : 1;
+          slotMediaAspect[slotName] = videoAspect;
+          updateSlotCoverScale(slotName);
           var playPromise = video.play();
           if (playPromise && typeof playPromise.catch === 'function') {
             playPromise.catch(function () {
@@ -212,6 +247,17 @@
 
     if (typeof source.initImage === 'function') {
       source.initImage(media.path);
+      var img = new Image();
+      img.addEventListener(
+        'load',
+        function () {
+          var imageAspect = (img.naturalWidth > 0 && img.naturalHeight > 0) ? (img.naturalWidth / img.naturalHeight) : 1;
+          slotMediaAspect[slotName] = imageAspect;
+          updateSlotCoverScale(slotName);
+        },
+        { once: true }
+      );
+      img.src = media.path;
       // Let Hydra refresh source texture before blending.
       setTimeout(function () {
         if (typeof onReady === 'function') onReady();
@@ -357,6 +403,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       updateResolution();
+      updateAllCoverScales();
     }, 100);
   }
 
@@ -454,6 +501,7 @@
       detectAudio: false,
       makeGlobal: true,
     });
+    updateAllCoverScales();
     setBlendValue(0);
     transitionToRandomSource(true);
 
