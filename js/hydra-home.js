@@ -204,12 +204,19 @@
     if (media.type === 'video' && typeof source.init === 'function') {
       var video = document.createElement('video');
       var readyCalled = false;
+      var sourceInitialized = false;
       video.crossOrigin = 'anonymous';
       video.muted = true;
       video.autoplay = true;
       video.loop = false;
       video.playsInline = true;
       video.preload = 'auto';
+      function initHydraSourceFromVideo() {
+        if (sourceInitialized) return;
+        sourceInitialized = true;
+        source.init({ src: video, dynamic: true });
+        slotVideos[slotName] = video;
+      }
       function done() {
         if (readyCalled) return;
         readyCalled = true;
@@ -219,6 +226,7 @@
       video.addEventListener(
         'loadeddata',
         function () {
+          initHydraSourceFromVideo();
           var videoAspect = (video.videoWidth > 0 && video.videoHeight > 0) ? (video.videoWidth / video.videoHeight) : 1;
           slotMediaAspect[slotName] = videoAspect;
           updateSlotCoverScale(slotName);
@@ -240,8 +248,7 @@
         { once: true }
       );
       video.src = media.path;
-      source.init({ src: video, dynamic: true });
-      slotVideos[slotName] = video;
+      video.load();
       return;
     }
 
@@ -416,8 +423,10 @@
     var closeBtn = popup && popup.querySelector('.project-popup-close');
     var backdrop = popup && popup.querySelector('.project-popup-backdrop');
     var projectLinks = document.querySelectorAll('.coverflow-track a');
+    var lastFocusedElement = null;
 
     if (!popup || !iframe) return;
+    popup.inert = true;
 
     function showIframeMode() {
       iframe.hidden = false;
@@ -438,6 +447,9 @@
       var mode = popupConfig.mode || 'iframe';
       var url = popupConfig.url || '';
       var label = popupConfig.label || 'Project';
+      var trigger = popupConfig.trigger || null;
+
+      lastFocusedElement = trigger || document.activeElement;
 
       if (mode === 'case-study') {
         showCaseStudyMode();
@@ -448,12 +460,20 @@
         iframe.src = url;
         titleEl.textContent = label || 'Project';
       }
+      popup.inert = false;
       popup.setAttribute('aria-hidden', 'false');
       popup.classList.add('project-popup-open');
       document.body.classList.add('project-popup-active');
+      if (closeBtn) closeBtn.focus({ preventScroll: true });
     }
 
     function closePopup() {
+      var active = document.activeElement;
+      if (active && popup.contains(active) && active.blur) active.blur();
+      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+        lastFocusedElement.focus({ preventScroll: true });
+      }
+      popup.inert = true;
       popup.setAttribute('aria-hidden', 'true');
       popup.classList.remove('project-popup-open');
       document.body.classList.remove('project-popup-active');
@@ -468,10 +488,10 @@
         var mode = link.getAttribute('data-popup-mode');
         var label = link.getAttribute('aria-label') || link.textContent.trim() || 'Project';
         if (mode === 'case-study') {
-          openPopup({ mode: 'case-study', label: label });
+          openPopup({ mode: 'case-study', label: label, trigger: link });
           return;
         }
-        if (url) openPopup({ mode: 'iframe', url: url, label: label });
+        if (url) openPopup({ mode: 'iframe', url: url, label: label, trigger: link });
       });
     });
 

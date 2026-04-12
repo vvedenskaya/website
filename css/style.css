@@ -632,6 +632,12 @@ iframe[data-bg-media] {
   .home-pie-menu .home-album-widget .home-album-title {
     font-size: 0.46rem;
   }
+  .home-nyc-widget video::-webkit-media-controls-start-playback-button,
+  .home-nyc-widget video::-webkit-media-controls-overlay-play-button,
+  .home-nyc-widget video::-webkit-media-controls-play-button {
+    -webkit-appearance: none;
+    display: none !important;
+  }
   .home-pie-center.about-btn {
     padding: 0.3rem 0.58rem;
     min-width: 60px;
