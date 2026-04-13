@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bombay - Mars Interactive Map</title>
+    <link rel="stylesheet" href="../css/style.css" />
+  </head>
+  <body class="home-page">
+    <main class="fullscreen">
+      <div id="project-popup-case-study" class="project-popup-case-study" style="max-width: 960px; margin: 0 auto; height: 100vh;">
+        <div class="project-case-study-content">
+          <video controls autoplay muted loop preload="auto" playsinline>
+            <source src="../images/projects/network%20map%20video%20.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+
+          <p>
+            At Mars College I built a live map of Bombay Beach and the college campus - one LAN, one community-run internet. The idea was simple: show how that shared network actually sits on the ground, not only in a dashboard.
+          </p>
+          <p>
+            A small pipeline reads UniFi and UISP controllers and places radios, access points, and clients on the map with their real coordinates. You get three basemaps (streets, satellite, and a drone orthophoto), every device and link in view, light animation to suggest traffic moving across links and around APs, and a time bar to scrub sampled snapshots of usage and client connectivity over shorter and longer windows. For the frontend, we used OpenLayers.
+          </p>
+          <p>
+            Because Google Maps did not show the layout of our off-grid community, we captured DJI drone photos and stitched them into a single orthophoto aligned with Google Maps.
+          </p>
+          <p>
+            For each client the panel shows IP, signal strength, the associated access point, uptime, and traffic. Access point positions were checked on site with GPS.
+          </p>
+          <p>
+            <a href="../index.html" class="about-back-link">Back</a>
+          </p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

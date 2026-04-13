@@ -511,10 +511,13 @@
 
     projectLinks.forEach(function (link) {
       link.addEventListener('click', function (e) {
-        e.preventDefault();
         var url = link.getAttribute('href');
         var mode = link.getAttribute('data-popup-mode');
         var label = link.getAttribute('aria-label') || link.textContent.trim() || 'Project';
+        if (mode === 'case-study' && url && url !== '#') {
+          return;
+        }
+        e.preventDefault();
         if (mode === 'case-study') {
           openPopup({ mode: 'case-study', label: label, trigger: link });
           return;
