@@ -56,14 +56,14 @@
   }
 
   function getTemplateCode() {
-    return 'voronoi(()=>6 + mX * 0.2,()=>1 + mY * 0.05)\n' +
-      '.mult(osc(()=>10 + mX * 3,0.1,()=>Math.sin(time)*1).saturate(()=>window.hydraSaturate).kaleid(()=>window.hydraKaleid))\n' +
-      '.modulate(o0,()=>0.35 + mY*0.25)\n' +
-      '.add(o0,()=>0.18 + mX*0.2)\n' +
+    return 'voronoi(()=>5.7 + mX * 0.7,()=>0.95 + mY * 0.22)\n' +
+      '.mult(osc(()=>9.5 + mX * 7.5,0.1,()=>Math.sin(time)*1.2).saturate(()=>window.hydraSaturate).kaleid(()=>window.hydraKaleid))\n' +
+      '.modulate(o0,()=>0.28 + mY*0.45)\n' +
+      '.add(o0,()=>0.12 + mX*0.38)\n' +
       '.scrollY(()=>window.hydraScroll)\n' +
-      '.scale(()=>window.hydraScale + mX * 0.04)\n' +
-      '.diff(src(s0).scale(1, ()=>window.hydraMediaScaleX0, ()=>window.hydraMediaScaleY0).blend(src(s1).scale(1, ()=>window.hydraMediaScaleX1, ()=>window.hydraMediaScaleY1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.02 - mX*0.05),()=>window.hydraBlend)\n' +
-      '.modulate(voronoi(8,1),0.008)\n' +
+      '.scale(()=>window.hydraScale + mX * 0.1)\n' +
+      '.diff(src(s0).scale(1, ()=>window.hydraMediaScaleX0, ()=>window.hydraMediaScaleY0).blend(src(s1).scale(1, ()=>window.hydraMediaScaleX1, ()=>window.hydraMediaScaleY1),()=>window.' + MEDIA_BLEND_KEY + ').contrast(1.08).saturate(0.5).scale(()=>1.03 - mX*0.1),()=>window.hydraBlend)\n' +
+      '.modulate(voronoi(8,1),0.016)\n' +
       '.luma(()=>window.hydraLuma)\n' +
       '.out()\n\n' +
       'speed = window.hydraSpeed';
@@ -81,8 +81,8 @@
     }
 
     function tickMouseSmoothing() {
-      window.mX += (targetMX - window.mX) * 0.08;
-      window.mY += (targetMY - window.mY) * 0.08;
+      window.mX += (targetMX - window.mX) * 0.12;
+      window.mY += (targetMY - window.mY) * 0.12;
       window.requestAnimationFrame(tickMouseSmoothing);
     }
 
