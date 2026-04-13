@@ -421,6 +421,23 @@ iframe[data-bg-media] {
   display: block;
   object-fit: cover;
   object-position: center;
+  pointer-events: none;
+}
+
+.home-nyc-widget video::-webkit-media-controls,
+.home-nyc-widget video::-webkit-media-controls-enclosure,
+.home-nyc-widget video::-webkit-media-controls-panel,
+.home-nyc-widget video::-webkit-media-controls-start-playback-button,
+.home-nyc-widget video::-webkit-media-controls-overlay-play-button,
+.home-nyc-widget video::-webkit-media-controls-play-button,
+.home-nasty-widget video::-webkit-media-controls,
+.home-nasty-widget video::-webkit-media-controls-enclosure,
+.home-nasty-widget video::-webkit-media-controls-panel,
+.home-nasty-widget video::-webkit-media-controls-start-playback-button,
+.home-nasty-widget video::-webkit-media-controls-overlay-play-button,
+.home-nasty-widget video::-webkit-media-controls-play-button {
+  -webkit-appearance: none;
+  display: none !important;
 }
 
 .home-widget-placeholder {
