@@ -70,6 +70,9 @@
   }
 
   function bindPointerInput() {
+    var isHudInteracting = false;
+    var hudRoot = document.querySelector('.hud');
+
     function updateMouse(clientX, clientY) {
       var w = Math.max(window.innerWidth, 1);
       var h = Math.max(window.innerHeight, 1);
@@ -86,10 +89,27 @@
     window.addEventListener(
       'pointermove',
       function (event) {
+        var target = event.target;
+        var insideHud = !!(target && typeof target.closest === 'function' && target.closest('.hud'));
+        if (isHudInteracting || insideHud) return;
         updateMouse(event.clientX, event.clientY);
       },
       { passive: true }
     );
+
+    if (hudRoot) {
+      hudRoot.addEventListener('pointerdown', function () {
+        isHudInteracting = true;
+      });
+    }
+
+    window.addEventListener('pointerup', function () {
+      isHudInteracting = false;
+    });
+
+    window.addEventListener('pointercancel', function () {
+      isHudInteracting = false;
+    });
 
     window.requestAnimationFrame(tickMouseSmoothing);
   }
@@ -360,6 +380,14 @@
   }
 
   function bindSliders() {
+    function syncRuntimeParam(paramKey, value) {
+      window[paramKey] = value;
+      if (paramKey === 'hydraSpeed') {
+        // Hydra uses the global speed variable at runtime.
+        window.speed = value;
+      }
+    }
+
     for (var i = 0; i < HYDRA_SLIDER_IDS.length; i += 1) {
       var el = document.getElementById(HYDRA_SLIDER_IDS[i]);
       var key = HYDRA_PARAM_KEYS[i];
@@ -369,12 +397,12 @@
       var max = parseFloat(el.max, 10);
       var initial = (typeof def === 'number' && def >= min && def <= max) ? def : (min + max) * 0.5;
       el.value = String(initial);
-      window[key] = initial;
+      syncRuntimeParam(key, initial);
       (function (input, paramKey) {
         function update() {
           var v = parseFloat(input.value, 10);
-          window[paramKey] = v;
-          applyCode();
+          if (!isFinite(v)) return;
+          syncRuntimeParam(paramKey, v);
         }
         input.addEventListener('input', update);
         input.addEventListener('change', update);
